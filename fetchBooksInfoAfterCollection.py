@@ -25,7 +25,7 @@ def get_urls(book_type):
     c=sqlite3.connect(history_path)
     cursor=c.cursor()
     pattern_str='https://library.bz/{}/uploads/new/%'.format(book_type)
-    select_statement="SELECT urls.url FROM urls,visits WHERE urls.id=visits.url AND urls.url LIKE '{}'".format(pattern_str)
+    select_statement="SELECT urls.url FROM urls,visits WHERE urls.id=visits.url AND urls.url LIKE '{}' ORDER BY last_visit_time DESC LIMIT 15".format(pattern_str)
     print(select_statement)
     cursor.execute(select_statement)
     results=cursor.fetchall()
@@ -35,8 +35,8 @@ def get_urls(book_type):
         if not url in urls:
             urls.append(url)
 
-    # for url in urls:
-    #     print(url)
+    for url in urls:
+        print(url)
 
     return urls
     # print(url)
@@ -184,110 +184,10 @@ def main():
         f.write("| 书名 | 作者 | ISBN号 | md5值 |\n")
         f.write("| ---- | ---- | ---- | ---- |\n")
         f.write(new_str)
-	os.remove("./cc.md")
-	os.remove("./ff.md")
+    os.remove("./cc.md")
+    os.remove("./ff.md")
     print("done.")
 
 
 if __name__=="__main__":
     main()
-
-# 截取得到md5值
-
-# base_urls=[]
-# for url in urls:
-#     if url.startswith(main_head):
-#         md5=url[len(main_head):]
-#         base_url=base_main+md5
-#     elif url.startswith(fiction_head):
-#         md5=url[len(fiction_head):]
-#         base_url=base_fiction+md5
-#     md5s.append(md5)
-#     base_urls.append(base_url)
-
-# print(base_urls)
-
-
-# base_urls=base_urls[12:]
-
-
-
-
-# driver=webdriver.Chrome(executable_path=r"C:\Users\linsi\AppData\Local\CentBrowser\Application\chrome.exe")
-
-# def login(acc,pwd,url):
-#     driver.get(url)
-
-# 注意，登录账号有时需要auth，就是用户名和密码，记住这个小知识点
-
-
-# for idx,base_url in enumerate(base_urls):
-#     pack=[]
-#     md5=md5s[idx]
-#
-#     # 改动这里进行断后重连
-#     if idx<=11:
-#         continue
-#
-#     resp_text=requests.get(base_url,headers=headers,auth=auth).text
-#     html=etree.HTML(resp_text)
-#
-#     # 已被收录，collection就会有值
-#     collection_field="//a[text()='Gen.lib.rus.ec']//@href"
-#
-#     # 未被收录，title就会有值
-#     title_field="//td[@class='record_title']//text()"
-#     # 要定位当前td同级后的一个td
-#     # 举例： //td[.='text']/following-sibling::td
-#     author_field="//td[@class='field' and text()='Author(s):']/following-sibling::td//text()"
-#     isbn_field="//td[@class='field' and text()='ISBN:']/following-sibling::td//text()"
-#
-#     collection=html.xpath(collection_field)
-#     if collection==[]:
-#         title=html.xpath(title_field)[0]
-#         author=html.xpath(author_field)[0]
-#         isbn=html.xpath(isbn_field)[0]
-#         print(title,author,isbn,sep='\t')
-#     else:
-#         new_link="http://libgen.is/search.php?req={}&column=md5".format(md5)
-#         print("New Link:\t",new_link)
-#         # proxies = {'https':'https://144.202.39.159:10086',
-#         #            'http':'http://144.202.39.159:10086'}
-#         resp_text2 = requests.get(new_link, headers=headers).text
-#         # print(resp_text2)
-#         html2=etree.HTML(resp_text2)
-#         # 只要直接最近一层text，就是一个/
-#         title_field2 = "//a[contains(@href,'book/index.php?md5=')]//text()".format(md5)
-#         author_field2 = "//td[@width=500]/preceding-sibling::td//text()"
-#         isbn_field2 = "//font[@face='Times' and @color='green']/i//text()"
-#         try:
-#             title=html2.xpath(title_field2)[0]
-#         except IndexError:
-#             print("{} is bad!".format(md5))
-#             continue
-#         authors=html2.xpath(author_field2)
-#
-#         author=""
-#         for each in authors:
-#             if each.isdigit():
-#                 pass
-#             else:
-#                 author+=each
-#
-#         isbn=html2.xpath(isbn_field2)[-1]
-#         print(title,author,isbn,md5,sep='**')
-#         # print(title,isbn,sep='\t')
-#         time.sleep(1)
-#     pack_str = "| {} | {} | {} | {} |".format(title,author,isbn,md5)
-#     with open("cc.md","a",encoding="utf-8") as f:
-#         f.write(pack_str)
-#         f.write("\n")
-
-
-
-
-
-# 爬取数据
-
-
-
