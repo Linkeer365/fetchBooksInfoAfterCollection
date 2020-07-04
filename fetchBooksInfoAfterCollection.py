@@ -4,6 +4,7 @@ import sqlite3
 from lxml import etree
 import time
 import re
+import datetime
 
 import sys
 
@@ -96,7 +97,7 @@ def main():
         for each_url in urls:
             pack=[]
             each_md5=get_md5(book_type,each_url)
-            print(last_md5_set)
+            # print(last_md5_set)
             if each_md5+'\n' in last_md5_set:
                 break
             md5s.append(each_md5)
@@ -130,7 +131,12 @@ def main():
                         else:
                             author += each
 
-                    isbn = new_html.xpath(isbn_field)[-1]
+                    isbn = new_html.xpath(isbn_field)
+                    print(isbn)
+                    if isbn != []:
+                        isbn = isbn[-1]
+                    else:
+                        isbn = []
                     print(title, author, isbn, each_md5, sep='**')
                     # print(title,isbn,sep='\t')
                     # time.sleep(1)
@@ -145,7 +151,12 @@ def main():
 
                     title = html.xpath(title_field2)[0]
                     author = html.xpath(author_field2)[0]
-                    isbn = html.xpath(isbn_field2)[0]
+                    isbn=html.xpath(isbn_field2)
+                    print(isbn)
+                    if isbn!=[]:
+                        isbn = html.xpath(isbn_field2)[0]
+                    else:
+                        isbn=[]
                     print(title, author, isbn, sep='\t')
                 pack_str = "| {} | {} | {} | {} |".format(title, author, isbn, each_md5)
                 with open("cc.md", "a", encoding="utf-8") as f:
@@ -172,27 +183,49 @@ def main():
                     title = new_html.xpath(title_field)[0]
                     authors = new_html.xpath(author_field)
                     author='&&'.join(authors)
-                    isbn = new_html.xpath(isbn_field)[-1]
+                    isbn = new_html.xpath(isbn_field)
+                    print(isbn)
+                    if isbn != []:
+                        isbn = isbn[-1]
+                    else:
+                        isbn = []
                     print(title, author, isbn, each_md5, sep='**')
                     # print(title,isbn,sep='\t')
                     # time.sleep(1)
                 else:
                     # 未被收录
-                    print("未被收录！")
-                    continue
+                    title_field2 = "//td[@class='record_title']//text()"
+                    # 要定位当前td同级后的一个td
+                    # 举例： //td[.='text']/following-sibling::td
+                    author_field2 = "//td[@class='field' and text()='Author(s):']/following-sibling::td//text()"
+                    isbn_field2 = "//td[@class='field' and text()='ISBN:']/following-sibling::td//text()"
+
+                    title = html.xpath(title_field2)[0]
+                    author = html.xpath(author_field2)[0]
+                    isbn=html.xpath(isbn_field2)
+                    print(isbn)
+                    if isbn!=[]:
+                        isbn = html.xpath(isbn_field2)[0]
+                    else:
+                        isbn=[]
+                    print(title, author, isbn, sep='\t')
+
                 pack_str = "| {} | {} | {} | {} |".format(title, author, isbn, each_md5)
                 with open("cc.md", "a", encoding="utf-8") as f:
                     f.write(pack_str)
                     f.write("\n")
-        md5s_str="\n".join(md5s)
-        with open("last_md5s.md","a",encoding="utf-8") as f:
-            f.write(md5s_str)
+                time.sleep(1)
+    md5s_str="\n".join(md5s)
+    with open("last_md5s.md","a",encoding="utf-8") as f:
+        date_obj=datetime.datetime.now()
+        date_str=date_obj.strftime("%Y-%m-%d %H:%M:%S")
+        f.write("\n === {} === \n".format(date_str)
+        f.write(md5s_str)
     print("Collect done.")
 
     # 将文件格式化之后，直接追加到md源文件之下
     assert os.path.exists("./cc.md")
 
-    new_str=""
     with open("./cc.md","r",encoding="utf-8") as f:
         lines_str=f.read()
         str1=re.sub("\|  ","| ",lines_str)
