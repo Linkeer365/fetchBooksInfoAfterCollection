@@ -85,6 +85,26 @@ def checkit():
         urls=get_urls(book_type)
         print("kksk")
 
+def get_field(field_name,field_pattern,html):
+    fields=html.xpath(field_pattern)
+    if len(fields)==0:
+        return "NIL"
+    elif len(fields)==1:
+        return fields[-1]
+    else:
+        if field_name=="author":
+            author=""
+            for each in fields:
+                if each.isdigit():
+                    pass
+                else:
+                    author += each
+            return author
+        elif field_name=="isbn":
+            return fields[-1]
+
+
+
 # checkit()
 # sys.exit(0)
 
@@ -95,119 +115,95 @@ def main():
         urls=get_urls(book_type)
         md5s.append('\n')
         for each_url in urls:
-            pack=[]
             each_md5=get_md5(book_type,each_url)
             # print(last_md5_set)
             if each_md5+'\n' in last_md5_set:
+                print("yes!")
                 break
             md5s.append(each_md5)
             each_resp_url=get_resp_url(book_type,each_md5)
             if book_type=="main":
-                resp_text = requests.get(each_resp_url, headers=headers, auth=auth).text
-                html = etree.HTML(resp_text)
+                upmain_resp_text = requests.get(each_resp_url, headers=headers, auth=auth).text
+                upmain_html = etree.HTML(upmain_resp_text)
                 # 已被收录，collection就会有值
                 collection_field = "//a[text()='Gen.lib.rus.ec']//@href"
 
-                collection = html.xpath(collection_field)
+                collection = get_field("collection",collection_field,upmain_html)
                 if collection != []:
                     # 已被收录
-                    new_link = "http://libgen.is/search.php?req={}&column=md5".format(each_md5)
-                    print("New Link:\t", new_link)
+                    collected_link = "http://libgen.is/search.php?req={}&column=md5".format(each_md5)
+                    print("New Link:\t", collected_link)
                     # proxies = {'https':'https://144.202.39.159:10086',
                     #            'http':'http://144.202.39.159:10086'}
-                    new_resp_text = requests.get(new_link, headers=headers).text
+                    collected_resp_text = requests.get(new_link, headers=headers).text
                     # print(resp_text2)
-                    new_html = etree.HTML(new_resp_text)
+                    collected_html = etree.HTML(collected_resp_text)
                     # 只要直接最近一层text，就是一个/
                     title_field = "//a[contains(@href,'book/index.php?md5=')]//text()".format(each_md5)
                     author_field = "//td[@width=500]/preceding-sibling::td//text()"
                     isbn_field = "//font[@face='Times' and @color='green']/i//text()"
-                    title = new_html.xpath(title_field)[0]
-                    authors = new_html.xpath(author_field)
-                    author = ""
-                    for each in authors:
-                        if each.isdigit():
-                            pass
-                        else:
-                            author += each
-
-                    isbn = new_html.xpath(isbn_field)
-                    print(isbn)
-                    if isbn != []:
-                        isbn = isbn[-1]
-                    else:
-                        isbn = []
+                    title = get_field("title",title_field,collected_html)
+                    author = get_field("author",author_field,collected_html)
+                    isbn=get_field("isbn",isbn_field,collected_html)
                     print(title, author, isbn, each_md5, sep='**')
                     # print(title,isbn,sep='\t')
                     # time.sleep(1)
                 else:
                     # 未被收录
                     # 未被收录，title就会有值
-                    title_field2 = "//td[@class='record_title']//text()"
+                    uncollected_html=upmain_html
+                    uncollected_title_field = "//td[@class='record_title']//text()"
                     # 要定位当前td同级后的一个td
                     # 举例： //td[.='text']/following-sibling::td
-                    author_field2 = "//td[@class='field' and text()='Author(s):']/following-sibling::td//text()"
-                    isbn_field2 = "//td[@class='field' and text()='ISBN:']/following-sibling::td//text()"
-
-                    title = html.xpath(title_field2)[0]
-                    author = html.xpath(author_field2)[0]
-                    isbn=html.xpath(isbn_field2)
-                    print(isbn)
-                    if isbn!=[]:
-                        isbn = html.xpath(isbn_field2)[0]
-                    else:
-                        isbn=[]
+                    uncollected_author_field = "//td[@class='field' and text()='Author(s):']/following-sibling::td//text()"
+                    uncollected_isbn_field = "//td[@class='field' and text()='ISBN:']/following-sibling::td//text()"
+                    title = get_field("title",uncollected_title_field,uncollected_html)
+                    author = get_field("author",uncollected_author_field,uncollected_html)
+                    isbn=get_field("isbn",uncollected_isbn_field,uncollected_html)
                     print(title, author, isbn, sep='\t')
                 pack_str = "| {} | {} | {} | {} |".format(title, author, isbn, each_md5)
                 with open("cc.md", "a", encoding="utf-8") as f:
                     f.write(pack_str)
                     f.write("\n")
             elif book_type=="fiction":
-                resp_text = requests.get(each_resp_url, headers=headers, auth=auth).text
-                html = etree.HTML(resp_text)
+                upfiction_resp_text = requests.get(each_resp_url, headers=headers, auth=auth).text
+                upfiction_html = etree.HTML(upfiction_resp_text)
                 # 已被收录，collection就会有值
                 collection_field = "//a[text()='Gen.lib.rus.ec']//@href"
-                collection = html.xpath(collection_field)
+                collection = get_field("collection",collection_field,upmain_html)
 
                 if collection!=[]:
-                    new_link="http://gen.lib.rus.ec/fiction/"+each_md5
-                    print("New Link:\t", new_link)
-                    new_resp_text = requests.get(new_link, headers=headers).text
+                    collected_link="http://gen.lib.rus.ec/fiction/"+each_md5
+                    print("New Link:\t", collected_link)
+                    collected_resp_text = requests.get(collected_link, headers=headers).text
                     # print(resp_text2)
-                    new_html = etree.HTML(new_resp_text)
+                    collected_html = etree.HTML(collected_resp_text)
                     # print(new_resp_text)
                     # 只要直接最近一层text，就是一个/
-                    title_field = "//td[@class='record_title']//text()"
-                    author_field = "//a[contains(@href,'authors') and @title='search by author']//text()"
-                    isbn_field = "//td[text()='ISBN:']/following-sibling::td//text()"
-                    title = new_html.xpath(title_field)[0]
-                    authors = new_html.xpath(author_field)
-                    author='&&'.join(authors)
-                    isbn = new_html.xpath(isbn_field)
-                    print(isbn)
-                    if isbn != []:
-                        isbn = isbn[-1]
-                    else:
-                        isbn = []
+                    collected_title_field = "//td[@class='record_title']//text()"
+                    collected_author_field = "//a[contains(@href,'authors') and @title='search by author']//text()"
+                    collected_isbn_field = "//td[text()='ISBN:']/following-sibling::td//text()"
+                    title = get_field("title", collected_title_field, collected_html)
+                    author = get_field("author", collected_author_field, collected_html)
+                    isbn = get_field("isbn", collected_isbn_field, collected_html)
+
                     print(title, author, isbn, each_md5, sep='**')
                     # print(title,isbn,sep='\t')
                     # time.sleep(1)
                 else:
                     # 未被收录
-                    title_field2 = "//td[@class='record_title']//text()"
+
+                    uncollected_html=upfiction_html
+
+                    uncollected_title_field = "//td[@class='record_title']//text()"
                     # 要定位当前td同级后的一个td
                     # 举例： //td[.='text']/following-sibling::td
-                    author_field2 = "//td[@class='field' and text()='Author(s):']/following-sibling::td//text()"
-                    isbn_field2 = "//td[@class='field' and text()='ISBN:']/following-sibling::td//text()"
+                    uncollected_author_field = "//td[@class='field' and text()='Author(s):']/following-sibling::td//text()"
+                    uncollected_isbn_field = "//td[@class='field' and text()='ISBN:']/following-sibling::td//text()"
 
-                    title = html.xpath(title_field2)[0]
-                    author = html.xpath(author_field2)[0]
-                    isbn=html.xpath(isbn_field2)
-                    print(isbn)
-                    if isbn!=[]:
-                        isbn = html.xpath(isbn_field2)[0]
-                    else:
-                        isbn=[]
+                    title = get_field("title",uncollected_title_field,uncollected_html)
+                    author = get_field("author",uncollected_author_field,uncollected_html)
+                    isbn=get_field("isbn",uncollected_isbn_field,uncollected_html)
                     print(title, author, isbn, sep='\t')
 
                 pack_str = "| {} | {} | {} | {} |".format(title, author, isbn, each_md5)
@@ -219,7 +215,7 @@ def main():
     with open("last_md5s.md","a",encoding="utf-8") as f:
         date_obj=datetime.datetime.now()
         date_str=date_obj.strftime("%Y-%m-%d %H:%M:%S")
-        f.write("\n === {} === \n".format(date_str)
+        f.write("\n === {} === \n".format(date_str))
         f.write(md5s_str)
     print("Collect done.")
 
@@ -235,8 +231,11 @@ def main():
 
     print("Format file written.")
 
+    date_obj=datetime.datetime.now()
+    date_str=date_obj.strftime("%Y-%m-%d %H:%M:%S")
     with open("./【长期更新】每日传书计划.md","a",encoding="utf-8") as f:
-        f.write("\n## 传书\n\n")
+        f.write("\n# {}\n".format(date_str))
+        f.write("\n## 传书（共{}本）\n\n".format(len(md5s)))
         f.write("| 书名 | 作者 | ISBN号 | md5值 |\n")
         f.write("| ---- | ---- | ---- | ---- |\n")
         f.write(new_str)
