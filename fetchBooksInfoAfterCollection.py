@@ -6,12 +6,14 @@ import time
 import re
 import datetime
 
+import bs4
+
 import sys
 
 # 上次进行了0-11，这次从12开始
 
 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36",
-         }
+        }
 
 auth=('genesis','upload')
 
@@ -23,9 +25,9 @@ history_path=os.path.join(history_dir,"History")
 
 last_md5_list=[]
 
-if os.path.exists("last_md5s.md"):
+if os.path.exists("last_md5s.txt"):
     print("good.")
-    with open("last_md5s.md","r",encoding="utf-8") as f:
+    with open("last_md5s.txt","r",encoding="utf-8") as f:
         last_md5_list=f.readlines()
 else:
     last_md5_list=[]
@@ -103,8 +105,17 @@ def get_field(field_name,field_pattern,html):
         elif field_name=="isbn":
             return fields[-1]
 
+# xpath语法回顾，第几个兄弟节点
 
+# https://blog.csdn.net/qq_37059367/article/details/83819828
 
+# html=etree.HTML(requests.get("http://libgen.is/book/index.php?md5=0178E7DDC8D2DBE9EF35DA4C3FFA6FA3",headers=headers).text)
+# html_text=requests.get("http://libgen.is/book/index.php?md5=0178E7DDC8D2DBE9EF35DA4C3FFA6FA3",headers=headers).text
+# soup=bs4.BeautifulSoup(html_text)
+# print(soup.prettify())
+#
+# print(get_field("isbn","//font[text()='ISBN:']/parent::td/following-sibling::td[1]//text()",html))
+# sys.exit(0)
 # checkit()
 # sys.exit(0)
 
@@ -127,21 +138,42 @@ def main():
                 upmain_html = etree.HTML(upmain_resp_text)
                 # 已被收录，collection就会有值
                 collection_field = "//a[text()='Gen.lib.rus.ec']//@href"
-
+                main_link="http://libgen.is/book/index.php?md5={}".format(each_md5)
                 collection = get_field("collection",collection_field,upmain_html)
                 if collection != []:
                     # 已被收录
-                    collected_link = "http://libgen.is/search.php?req={}&column=md5".format(each_md5)
+                    collected_link = "http://libgen.is/book/index.php?md5={}".format(each_md5)
                     print("New Link:\t", collected_link)
                     # proxies = {'https':'https://144.202.39.159:10086',
                     #            'http':'http://144.202.39.159:10086'}
-                    collected_resp_text = requests.get(new_link, headers=headers).text
+                    collected_resp_text = requests.get(collected_link, headers=headers).text
                     # print(resp_text2)
                     collected_html = etree.HTML(collected_resp_text)
                     # 只要直接最近一层text，就是一个/
-                    title_field = "//a[contains(@href,'book/index.php?md5=')]//text()".format(each_md5)
-                    author_field = "//td[@width=500]/preceding-sibling::td//text()"
-                    isbn_field = "//font[@face='Times' and @color='green']/i//text()"
+                    title_field = "//td[@colspan=2]/b/a[contains(@href,'main')]//text()"
+                    author_field = "//td[@colspan=3]/b//text()"
+
+                    # ISBN html大概这样
+
+                    # <td>
+                    #      <font color="gray">
+                    #       ISBN:
+                    #      </font>
+                    #     </td>
+                    #     <td>
+                    #      7801494059, 9787801494054
+                    #     </td>
+                    #     <td>
+                    #      <nobr>
+                    #       <font color="gray">
+                    #        ID:
+                    #       </font>
+                    #      </nobr>
+                    #     </td>
+                    #     <td>
+                    #      2551938
+                    #     </td>
+                    isbn_field = "//font[text()='ISBN:']/parent::td/following-sibling::td[1]//text()"
                     title = get_field("title",title_field,collected_html)
                     author = get_field("author",author_field,collected_html)
                     isbn=get_field("isbn",isbn_field,collected_html)
@@ -161,7 +193,8 @@ def main():
                     author = get_field("author",uncollected_author_field,uncollected_html)
                     isbn=get_field("isbn",uncollected_isbn_field,uncollected_html)
                     print(title, author, isbn, sep='\t')
-                pack_str = "| {} | {} | {} | {} |".format(title, author, isbn, each_md5)
+                main_link_format="[{}]({})".format(each_md5,main_link)
+                pack_str = "| {} | {} | {} | {} | {} |".format(title, author, isbn, each_md5,main_link_format)
                 with open("cc.md", "a", encoding="utf-8") as f:
                     f.write(pack_str)
                     f.write("\n")
@@ -170,8 +203,8 @@ def main():
                 upfiction_html = etree.HTML(upfiction_resp_text)
                 # 已被收录，collection就会有值
                 collection_field = "//a[text()='Gen.lib.rus.ec']//@href"
-                collection = get_field("collection",collection_field,upmain_html)
-
+                collection = get_field("collection",collection_field,upfiction_html)
+                fiction_link="http://libgen.is/fiction/{}".format(each_md5)
                 if collection!=[]:
                     collected_link="http://gen.lib.rus.ec/fiction/"+each_md5
                     print("New Link:\t", collected_link)
@@ -186,7 +219,6 @@ def main():
                     title = get_field("title", collected_title_field, collected_html)
                     author = get_field("author", collected_author_field, collected_html)
                     isbn = get_field("isbn", collected_isbn_field, collected_html)
-
                     print(title, author, isbn, each_md5, sep='**')
                     # print(title,isbn,sep='\t')
                     # time.sleep(1)
@@ -205,14 +237,14 @@ def main():
                     author = get_field("author",uncollected_author_field,uncollected_html)
                     isbn=get_field("isbn",uncollected_isbn_field,uncollected_html)
                     print(title, author, isbn, sep='\t')
-
-                pack_str = "| {} | {} | {} | {} |".format(title, author, isbn, each_md5)
+                fiction_link_format="[{}]({})".format(each_md5,fiction_link)
+                pack_str = "| {} | {} | {} | {} | {} |".format(title, author, isbn, each_md5,fiction_link_format)
                 with open("cc.md", "a", encoding="utf-8") as f:
                     f.write(pack_str)
                     f.write("\n")
                 time.sleep(1)
     md5s_str="\n".join(md5s)
-    with open("last_md5s.md","a",encoding="utf-8") as f:
+    with open("last_md5s.txt","a",encoding="utf-8") as f:
         date_obj=datetime.datetime.now()
         date_str=date_obj.strftime("%Y-%m-%d %H:%M:%S")
         f.write("\n === {} === \n".format(date_str))
@@ -235,13 +267,14 @@ def main():
     date_str=date_obj.strftime("%Y-%m-%d %H:%M:%S")
     with open("./【长期更新】每日传书计划.md","a",encoding="utf-8") as f:
         f.write("\n# {}\n".format(date_str))
-        f.write("\n## 传书（共{}本）\n\n".format(len(md5s)))
-        f.write("| 书名 | 作者 | ISBN号 | md5值 |\n")
-        f.write("| ---- | ---- | ---- | ---- |\n")
+        f.write("\n## 传书（共{}本）\n\n".format(len(md5s)-2))
+        f.write("| 书名 | 作者 | ISBN号 | md5值 | 图书链接 |\n")
+        f.write("| ---- | ---- | ---- | ---- | ---- |\n")
         f.write(new_str)
     os.remove("./cc.md")
     os.remove("./ff.md")
     print("done.")
+
 
 
 if __name__=="__main__":
