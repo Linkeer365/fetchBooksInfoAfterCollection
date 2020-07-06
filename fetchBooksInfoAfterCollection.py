@@ -194,7 +194,7 @@ def main():
                     isbn=get_field("isbn",uncollected_isbn_field,uncollected_html)
                     print(title, author, isbn, sep='\t')
                 main_link_format="[{}]({})".format(each_md5,main_link)
-                pack_str = "| {} | {} | {} | {} | {} |".format(title, author, isbn, each_md5,main_link_format)
+                pack_str = "| {} | {} | {} | {} |".format(title, author, isbn, main_link_format)
                 with open("cc.md", "a", encoding="utf-8") as f:
                     f.write(pack_str)
                     f.write("\n")
@@ -238,7 +238,7 @@ def main():
                     isbn=get_field("isbn",uncollected_isbn_field,uncollected_html)
                     print(title, author, isbn, sep='\t')
                 fiction_link_format="[{}]({})".format(each_md5,fiction_link)
-                pack_str = "| {} | {} | {} | {} | {} |".format(title, author, isbn, each_md5,fiction_link_format)
+                pack_str = "| {} | {} | {} | {} |".format(title, author, isbn, fiction_link_format)
                 with open("cc.md", "a", encoding="utf-8") as f:
                     f.write(pack_str)
                     f.write("\n")
@@ -268,8 +268,8 @@ def main():
     with open("./【长期更新】每日传书计划.md","a",encoding="utf-8") as f:
         f.write("\n# {}\n".format(date_str))
         f.write("\n## 传书（共{}本）\n\n".format(len(md5s)-2))
-        f.write("| 书名 | 作者 | ISBN号 | md5值 | 图书链接 |\n")
-        f.write("| ---- | ---- | ---- | ---- | ---- |\n")
+        f.write("| 书名 | 作者 | ISBN号 | 图书链接 |\n")
+        f.write("| ---- | ---- | ---- | ---- |\n")
         f.write(new_str)
     os.remove("./cc.md")
     os.remove("./ff.md")
