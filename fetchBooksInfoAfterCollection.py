@@ -130,7 +130,7 @@ def main():
             # print(last_md5_set)
             if each_md5+'\n' in last_md5_set:
                 print("yes!")
-                break
+                continue
             md5s.append(each_md5)
             each_resp_url=get_resp_url(book_type,each_md5)
             if book_type=="main":
@@ -140,7 +140,8 @@ def main():
                 collection_field = "//a[text()='Gen.lib.rus.ec']//@href"
                 main_link="http://libgen.is/book/index.php?md5={}".format(each_md5)
                 collection = get_field("collection",collection_field,upmain_html)
-                if collection != []:
+                # print("collection",collection)
+                if collection != "NIL":
                     # 已被收录
                     collected_link = "http://libgen.is/book/index.php?md5={}".format(each_md5)
                     print("New Link:\t", collected_link)
@@ -184,6 +185,7 @@ def main():
                     # 未被收录
                     # 未被收录，title就会有值
                     uncollected_html=upmain_html
+                    # print("uncollected",each_resp_url)
                     uncollected_title_field = "//td[@class='record_title']//text()"
                     # 要定位当前td同级后的一个td
                     # 举例： //td[.='text']/following-sibling::td
@@ -192,7 +194,7 @@ def main():
                     title = get_field("title",uncollected_title_field,uncollected_html)
                     author = get_field("author",uncollected_author_field,uncollected_html)
                     isbn=get_field("isbn",uncollected_isbn_field,uncollected_html)
-                    print(title, author, isbn, sep='\t')
+                    print(title, author, isbn, sep='**')
                 main_link_format="[{}]({})".format(each_md5,main_link)
                 pack_str = "| {} | {} | {} | {} |".format(title, author, isbn, main_link_format)
                 with open("cc.md", "a", encoding="utf-8") as f:
@@ -205,7 +207,7 @@ def main():
                 collection_field = "//a[text()='Gen.lib.rus.ec']//@href"
                 collection = get_field("collection",collection_field,upfiction_html)
                 fiction_link="http://libgen.is/fiction/{}".format(each_md5)
-                if collection!=[]:
+                if collection!="NIL":
                     collected_link="http://gen.lib.rus.ec/fiction/"+each_md5
                     print("New Link:\t", collected_link)
                     collected_resp_text = requests.get(collected_link, headers=headers).text
@@ -236,7 +238,7 @@ def main():
                     title = get_field("title",uncollected_title_field,uncollected_html)
                     author = get_field("author",uncollected_author_field,uncollected_html)
                     isbn=get_field("isbn",uncollected_isbn_field,uncollected_html)
-                    print(title, author, isbn, sep='\t')
+                    print(title, author, isbn, sep='**')
                 fiction_link_format="[{}]({})".format(each_md5,fiction_link)
                 pack_str = "| {} | {} | {} | {} |".format(title, author, isbn, fiction_link_format)
                 with open("cc.md", "a", encoding="utf-8") as f:
